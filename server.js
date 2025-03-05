@@ -2,53 +2,43 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 const passport = require('passport');
-const session = require('express-session');
-const listEndpoints = require("express-list-endpoints");
+
+const qrRoute = require('./routes/qrRoutes');
 require('dotenv').config();
+require('./config/passport');
 
-require('./config/passport');  
-
-const chatRoutes = require("./routes/chatRoutes");
-const leaderboardRoutes = require("./routes/leaderboardRoutes");
-const eventRoutes = require("./routes/eventRoutes");
 const authRoutes = require('./routes/auth');
+const eventRoutes = require('./routes/event');
 
 const app = express();
 
-// Middleware
 app.use(express.json());
 app.use(cors());
-
- app.use(session({
-    secret: process.env.SESSION_SECRET || 'your_secret_key',    
-    resave: false,
-    saveUninitialized: true,
-    cookie: { secure: false }    
-}));
-
 app.use(passport.initialize());
-app.use(passport.session());  
 
-// Routes
-app.use('/auth', require('./routes/auth'));
-app.use('api/auth', authRoutes);
-app.use("/api/chat", chatRoutes);
-app.use("/api/leaderboard", leaderboardRoutes);
-app.use("/api/events", eventRoutes);
+// Mount routes
+app.use('/api/auth', authRoutes);
+app.use('/api/events', eventRoutes); 
 
-// Start Server
+app.use('/api/qr', qrRoute);
+
+// Test route
+app.get('/', (req, res) => {
+  res.send('Welcome to HiveMind!');
+});
+
+
 const startServer = async () => {
-    try {
-        await mongoose.connect(process.env.MONGO_URI);
-        console.log("✅ MongoDB connected");
-
-        app.listen(process.env.PORT, () => {
-            console.log(`🚀 Server running on port ${process.env.PORT}`);
-        });
-    } catch (error) {
-        console.error("❌ MongoDB connection error:", error);
-        process.exit(1);
-    }
+  try {
+    await mongoose.connect(process.env.MONGO_URI);
+    console.log('✅ MongoDB connected');
+    app.listen(process.env.PORT, () => {
+      console.log(`🚀 Server running on port ${process.env.PORT}`);
+    });
+  } catch (error) {
+    console.error('❌ MongoDB connection error:', error);
+    process.exit(1);
+  }
 };
 
 startServer();

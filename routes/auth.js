@@ -1,48 +1,47 @@
-const express = require('express');
-const passport = require('passport');
-const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
+const bcrypt = require('bcrypt');
 const User = require('../models/User');
+const ROLES = require('../utils/roles');
 
-const router = express.Router();
+const signup = async (req, res) => {
+  const { email, password, role } = req.body;
 
-// Signup
-router.post('/signup', async (req, res) => {
-    try {
-        const { email, username, password } = req.body;
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await User.create({ email, username, password: hashedPassword });
-        res.status(201).json({ message: "User registered successfully" });
-    } catch (err) {
-        res.status(500).json({ error: err.message });
-    }
-});
+  try {
+    const hashedPassword = await bcrypt.hash(password, 10);
+    const user = new User({ email, password: hashedPassword, role });
+    await user.save();
+    console.log('User saved:', user);
+    res.status(201).json({ message: 'User created successfully', user });
+  } catch (error) {
+    console.error('Signup error:', error);
+    res.status(500).json({ message: 'Error signing up', error });
+  }
+};
 
-// Login
-router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+const login = async (req, res) => {
+  const { email, password } = req.body;
+
+  try {
     const user = await User.findOne({ email });
-    if (!user || !(await bcrypt.compare(password, user.password))) {
-        return res.status(400).json({ message: "Invalid credentials" });
+    console.log('User found:', user);
+    if (!user) {
+      return res.status(401).json({ message: 'Invalid credentials' });
     }
-    const token = jwt.sign({ id: user._id }, process.env.JWT_SECRET);
-    res.json({ token });
-});
 
-// Google  
-router.get('/google',
-    passport.authenticate('google', { scope: ['profile', 'email'] })
-);router.get('/google/callback', passport.authenticate('google', { failureRedirect: '/' }), (req, res) => res.redirect('/dashboard'));
+    console.log('Stored hashed password:', user.password);
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+    console.log('Password match:', isPasswordValid);
 
-// GitHub  
-router.get('/github', 
-    passport.authenticate('github', { scope: ['user:email'] }));
-router.get('/github/callback', passport.authenticate('github', { failureRedirect: '/' }), (req, res) => res.redirect('/dashboard'));
+    if (!isPasswordValid) {
+      return res.status(401).json({ message: 'Invalid credentials' });
+    }
 
-// LinkedIn  
-router.get('/linkedin', 
-    passport.authenticate('linkedin'));
-router.get('/linkedin/callback', passport.authenticate('linkedin', { failureRedirect: '/' }), (req, res) => res.redirect('/dashboard'));
+    const token = jwt.sign({ userId: user._id, role: user.role }, process.env.JWT_SECRET, { expiresIn: '1h' });
+    res.json({ message: 'Login successful', token });
+  } catch (error) {
+    console.error('Login error:', error);
+    res.status(500).json({ message: 'Error logging in', error });
+  }
+};
 
-module.exports = router;
- 
+module.exports = { signup, login };
