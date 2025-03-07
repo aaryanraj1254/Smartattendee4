@@ -1,6 +1,6 @@
 const express = require("express");
 const { authenticateToken } = require("../middleware/authMiddleware");
-const { generateAttendanceQR, verifyQR } = require("../middleware/qrMiddleware");
+const { generateAttendanceQR, verifyQR } = require("../middleware/qrmiddleware");
 const { saveQRCode } = require("../controllers/qrCodeController");
 
 const router = express.Router();

@@ -11,7 +11,7 @@ const generateAttendanceQR = async (req, res, next) => {
 
     
     const qrCodeData = `${eventId}-${Date.now()}`;
-    const expiresAt = new Date(Date.now() + 30 * 1000); // QR code expires in 30 seconds
+    const expiresAt = new Date(Date.now() + 30 * 1000); 
 
     
     const newQRCode = await QRCode.create({
